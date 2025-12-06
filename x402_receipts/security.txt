@@ -1,0 +1,7 @@
+Contact: gajeramit180@gmail.com
+Expires: 2025-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://github.com/mitgajera/x402-ai
+Policy: https://github.com/mitgajera/x402-ai/blob/main/SECURITY.md
+Encryption: https://github.com/mitgajera/x402-ai/.well-known/pgp-key.txt
+
