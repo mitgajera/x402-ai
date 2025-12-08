@@ -24,6 +24,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
     "@pythnetwork/client": "^2.22.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -36,6 +37,8 @@
     "@wallet-ui/react": "2.0.0",
     "@wallet-ui/react-gill": "2.0.0",
     "@wallet-ui/tailwind": "2.0.0",
+    "bs58": "^6.0.0",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gill": "0.11.0",

@@ -3,7 +3,27 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bot, User } from 'lucide-react'
 import { type ChatMessage } from '@/lib/chat-history'
+import { X402_MODELS } from '@/lib/x402-client'
+import { OpenAIIcon, GoogleIcon, AnthropicIcon, PerplexityIcon } from '@/components/llm-icons'
 import ReactMarkdown from 'react-markdown'
+
+function getModelIcon(modelId: string) {
+  const model = X402_MODELS.find(m => m.id === modelId)
+  if (!model) return <Bot className="h-4 w-4" />
+  
+  switch (model.provider) {
+    case 'openai':
+      return <OpenAIIcon className="h-4 w-4" />
+    case 'google':
+      return <GoogleIcon className="h-4 w-4" />
+    case 'anthropic':
+      return <AnthropicIcon className="h-4 w-4" />
+    case 'perplexity':
+      return <PerplexityIcon className="h-4 w-4" />
+    default:
+      return <Bot className="h-4 w-4" />
+  }
+}
 
 export function ChatMessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
@@ -12,7 +32,7 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
     <div className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'} mb-6`}>
       <Avatar className="h-8 w-8 shrink-0">
         <AvatarFallback className={isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
-          {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+          {isUser ? <User className="h-4 w-4" /> : getModelIcon(message.modelId)}
         </AvatarFallback>
       </Avatar>
       <div className={`flex-1 ${isUser ? 'text-right' : 'text-left'}`}>

@@ -21,11 +21,29 @@ export function ClusterDropdown() {
         <Button variant="outline">{cluster.label}</Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
-        <DropdownMenuRadioGroup value={cluster.id} onValueChange={(cluster) => setCluster(cluster as SolanaClusterId)}>
-          {clusters.map((cluster) => {
+        <DropdownMenuRadioGroup 
+          value={cluster.id} 
+          onValueChange={(clusterId) => {
+            const selectedCluster = clusters.find(c => c.id === clusterId)
+            if (selectedCluster?.id.includes('mainnet')) {
+              return
+            }
+            setCluster(clusterId as SolanaClusterId)
+          }}
+        >
+          {clusters.map((c) => {
+            const isMainnet = c.id.includes('mainnet')
+            const isUnavailable = isMainnet
+            
             return (
-              <DropdownMenuRadioItem key={cluster.id} value={cluster.id}>
-                {cluster.label}
+              <DropdownMenuRadioItem 
+                key={c.id} 
+                value={c.id}
+                disabled={isUnavailable}
+                className={isUnavailable ? 'opacity-50 cursor-not-allowed' : ''}
+              >
+                {c.label}
+                {isUnavailable && <span className="text-xs text-muted-foreground">(Coming Soon...)</span>}
               </DropdownMenuRadioItem>
             )
           })}

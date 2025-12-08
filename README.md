@@ -158,23 +158,23 @@ The x402 AI Gateway follows a three-tier architecture: **Frontend (Client)**, **
 ┌────────▼─────────────────────────┐
 │   Backend API Gateway            │
 │   (/api/ai)                      │
-│                                   │
+│                                  │
 │  - Payment Verification          │
 │  - Price Oracle                  │
 │  - LLM Router                    │
 │  - Refund Handler                │
-└────────┬──────────────────────────┘
+└────────┬─────────────────────────┘
          │
     ┌────┴────┐
     │         │
-┌───▼───┐  ┌─▼──────────┐
-│Solana │  │ LLM APIs  │
-│Block- │  │           │
-│chain  │  │ - OpenAI  │
-│       │  │ - Google  │
-│       │  │ - Anthropic│
+┌───▼───┐  ┌──▼──────────┐
+│Solana │  │ LLM APIs    │
+│Block- │  │             │
+│chain  │  │ - OpenAI    │
+│       │  │ - Google    │
+│       │  │ - Anthropic │
 │       │  │ - Perplexity│
-└───────┘  └───────────┘
+└───────┘  └─────────────┘
 ```
 
 ### Component Architecture
