@@ -1,110 +1,157 @@
 # Security Policy
 
-## Supported Versions
+## Overview
 
-We actively maintain and provide security updates for the following versions:
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+x402-ai-gateway is a Solana-powered, pay-per-request AI inference gateway. We take security seriously and appreciate responsible disclosure of vulnerabilities.
 
 ## Reporting a Vulnerability
 
-We take the security of the x402-ai-gateway project seriously. If you discover a security vulnerability, please report it to us as described below.
+**IMPORTANT: Do NOT report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
 
 ### How to Report
 
-**Please do NOT report security vulnerabilities through public GitHub issues.**
+**Email (Preferred):**
+- Address: `gajeramit180@gmail.com`
+- Subject: Include `[SECURITY]` prefix
+- Response: Within 48 hours
 
-Instead, please report them via one of the following methods:
+**GitHub Security Advisory:**
+- Use GitHub's private vulnerability reporting
+- Link: https://github.com/mitgajera/x402-ai/security/advisories/new
 
-1. **Email (Preferred):**
-   - Send an email to: security@example.com
-   - Include "SECURITY" in the subject line
-   - Provide a detailed description of the vulnerability
-   - Include steps to reproduce (if applicable)
-
-2. **GitHub Security Advisory:**
-   - Use GitHub's private vulnerability reporting feature
-   - Go to: https://github.com/mitgajera/x402-ai/security/advisories/new
+**Security.txt:**
+- Location: `x402_receipts/security.txt`
 
 ### What to Include
 
-When reporting a vulnerability, please include:
-
-- **Type of vulnerability** (e.g., smart contract bug, frontend issue, API vulnerability)
-- **Component affected** (e.g., Anchor program, payment flow, API route)
-- **Severity assessment** (Critical, High, Medium, Low)
-- **Steps to reproduce** (if applicable)
-- **Potential impact** (what could an attacker do?)
-- **Suggested fix** (if you have one)
+- Vulnerability type and affected component
+- Severity assessment (Critical/High/Medium/Low)
+- Steps to reproduce
+- Potential impact
+- Suggested fix (if available)
+- Environment details (devnet/mainnet)
 
 ### Response Timeline
 
-- **Initial Response:** Within 48 hours
-- **Status Update:** Within 7 days
-- **Resolution:** Depends on severity
-  - Critical: As soon as possible (typically within 24-48 hours)
-  - High: Within 1 week
-  - Medium: Within 2 weeks
-  - Low: Within 1 month
+| Severity | Response Time      |
+| -------- | ------------------ |
+| Critical | 24-48 hours        |
+| High     | Within 1 week      |
+| Medium   | Within 2 weeks     |
+| Low      | Within 1 month     |
 
-### What to Expect
+You will receive:
+1. Acknowledgment within 48 hours
+2. Regular status updates
+3. Security advisory publication (with credit, if desired)
+4. Patch release
 
-1. **Acknowledgment:** You will receive an acknowledgment of your report within 48 hours
-2. **Investigation:** We will investigate the vulnerability and assess its severity
-3. **Updates:** We will provide regular updates on the status of the vulnerability
-4. **Resolution:** Once fixed, we will:
-   - Credit you in the security advisory (if desired)
-   - Publish a security advisory with details
-   - Release a patch/update
+## Vulnerability Scope
 
-### Scope
+### In Scope
 
-**In Scope:**
 - Smart contract vulnerabilities (Anchor program)
-- Payment flow security issues
-- API endpoint vulnerabilities
-- Authentication/authorization flaws
-- Private key handling issues
+- Payment flow security issues (replay attacks, amount manipulation)
+- API endpoint vulnerabilities (auth bypass, injection)
+- Frontend security (XSS, wallet connection issues)
+- Private key exposure or environment variable leaks
 - Transaction validation bugs
+- Data privacy issues
 
-**Out of Scope:**
-- Denial of Service (DoS) attacks
+### Out of Scope
+
+- Denial of Service (DoS/DDoS) attacks
 - Social engineering attacks
 - Physical security issues
-- Issues in third-party dependencies (report to the dependency maintainer)
-- Issues requiring physical access to the user's device
+- Third-party dependency vulnerabilities (report to maintainer)
+- Issues in services we don't control (Solana network, wallet extensions)
+- Self-XSS or issues requiring root/admin access
+- Theoretical vulnerabilities without proof-of-concept
 
-### Security Best Practices
+**If unsure, report it anyway. We'd rather review a false positive than miss a real vulnerability.**
 
-When testing for vulnerabilities, please:
+## Security Testing Guidelines
 
-- **Do not** access or modify data that does not belong to you
-- **Do not** perform any attack that could harm the service or its users
-- **Do not** violate any laws or breach any agreements
-- **Do** act in good faith and follow responsible disclosure practices
+### Do:
+- Act in good faith and follow responsible disclosure
+- Test only on your own accounts or with permission
+- Minimize impact on other users
+- Use testnet/devnet for testing
+- Report vulnerabilities promptly
 
-### Rewards
+### Do Not:
+- Access or modify data that doesn't belong to you
+- Perform attacks that could harm the service or users
+- Violate laws or breach agreements
+- Publicly disclose before we address the issue
+- Test on mainnet with real funds
+- Use automated scanning tools that impact availability
 
-Currently, we do not offer monetary rewards for security vulnerabilities. However, we will:
+## Severity Classification
 
-- Publicly acknowledge your contribution (if desired)
-- Add you to our security hall of fame
-- Provide early access to security patches
+**Critical:** Complete system compromise, fund loss, remote code execution (24-48 hour fix)
 
-### Program Information
+**High:** Significant data breach, unauthorized access, payment bypass (1 week fix)
+
+**Medium:** Limited data exposure, privilege escalation (2 week fix)
+
+**Low:** Minor security issues, configuration problems (1 month fix)
+
+## Security Best Practices
+
+**For Users:**
+- Never share private keys or seed phrases
+- Verify transaction details before signing
+- Use hardware wallets for significant amounts
+- Keep wallet software updated
+
+**For Developers:**
+- Follow Anchor security best practices
+- Validate all inputs
+- Never commit private keys
+- Use environment variables for secrets
+- Rotate keys regularly
+- Use separate keys for devnet/mainnet
+
+## Rewards & Recognition
+
+While we don't currently offer monetary rewards, we provide:
+- Public acknowledgment in security advisories (with permission)
+- Security hall of fame recognition
+- Early access to security patches
+- Special thanks for significant contributions
+
+## Program Information
 
 - **Program ID:** `12wpFdqZm2bwCUNSiqB8UJTwRJFkevU5vUuE8XxhpHE1`
-- **Network:** Devnet (for testing), Mainnet (for production)
-- **Security Contact:** security@example.com
+- **Network:** Devnet (testing), Mainnet-beta (production)
+- **Repository:** https://github.com/mitgajera/x402-ai
+- **Security Email:** `gajeramit180@gmail.com`
 - **PGP Key:** Available upon request
 
-### Additional Resources
+## Security Resources
 
 - [Anchor Security Best Practices](https://www.anchor-lang.com/docs/security)
 - [Solana Security Guidelines](https://docs.solana.com/developing/programming-model/security)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [Common Solana Vulnerabilities](https://github.com/coral-xyz/sealevel-attacks)
 
-Thank you for helping keep x402-ai-gateway and its users safe!
+## Legal & Safe Harbor
+
+We provide safe harbor for security researchers who:
+- Act in good faith
+- Follow responsible disclosure practices
+- Comply with this security policy
+- Don't access/modify data beyond what's necessary to demonstrate the vulnerability
+
+Security researchers acting in accordance with this policy will not face legal action from us.
+
+## Questions?
+
+Contact us at `gajeramit180@gmail.com` with subject line `[SECURITY QUESTION]`.
+
+---
+
+**Thank you for helping keep x402-ai-gateway and its users safe!**
+
+*Last Updated: 2024*
