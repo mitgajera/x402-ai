@@ -142,3 +142,33 @@ export function clearChatHistory(walletAddress: string): void {
   }
 }
 
+export function clearLastNMessages(walletAddress: string, n: number): void {
+  if (typeof window === 'undefined') return
+  
+  try {
+    const key = `${STORAGE_KEY_PREFIX}${walletAddress}`
+    const stored = localStorage.getItem(key)
+    if (!stored) return
+    
+    const session: ChatSession = JSON.parse(stored)
+    let messages = session.messages || []
+    
+    if (messages.length <= n) {
+      // If we're trying to delete more than or equal to all messages, clear everything
+      localStorage.removeItem(key)
+      return
+    }
+    
+    // Remove last N messages
+    messages = messages.slice(0, -n)
+    
+    session.messages = messages
+    session.updatedAt = Date.now()
+    
+    localStorage.setItem(key, JSON.stringify(session))
+    logger.log(`Removed last ${n} messages from chat history`)
+  } catch {
+    logger.error('Error clearing last N messages')
+  }
+}
+

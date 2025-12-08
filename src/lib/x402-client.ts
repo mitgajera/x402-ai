@@ -10,13 +10,13 @@ export type X402ModelConfig = {
 export const X402_MODELS: X402ModelConfig[] = [
   {
     id: 'gemini-2.5-flash-lite',
-    label: 'Gemini 2.5 Flash Lite (Google) - FREE',
+    label: 'Gemini 2.5 Flash Lite (Google)',
     provider: 'google',
     priceUsd: 0.045,
   },
   {
     id: 'gpt-4o',
-    label: 'GPT‑4o (OpenAI) - FREE',
+    label: 'GPT‑4o (OpenAI)',
     provider: 'openai',
     priceUsd: 0.05,
   },
@@ -28,7 +28,7 @@ export const X402_MODELS: X402ModelConfig[] = [
   },
   {
     id: 'claude-3.5-sonnet',
-    label: 'Claude 3.5 Sonnet (Anthropic) - FREE',
+    label: 'Claude 3.5 Sonnet (Anthropic)',
     provider: 'anthropic',
     priceUsd: 0.06,
   },
