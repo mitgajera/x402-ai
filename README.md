@@ -30,44 +30,9 @@ User Request → HTTP 402 Payment Required → User Pays SOL → Transaction Ver
 5. Gateway processes AI request and returns response
 6. If AI service fails, automatic refund is processed
 
-## Prerequisites
+## Contributing
 
-- Node.js 18+ and npm
-- Solana wallet (Phantom, Solflare, Backpack, or compatible)
-- At least one LLM provider API key
-- Helius RPC API key (optional, for mainnet real-time pricing)
-
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/mitgajera/x402-ai.git
-cd x402-ai-gateway
-
-# Install dependencies
-npm install
-```
-
-## Configuration
-
-Create a `.env.local` file in the root directory:
-
-## Running the Application
-
-### Development
-
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:3000`
-
-### Production Build
-
-```bash
-npm run build
-npm start
-```
+For installation, setup, and development guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Usage
 
@@ -321,57 +286,6 @@ The x402 AI Gateway follows a three-tier architecture: **Frontend (Client)**, **
 4. **Refund Flow** (on failure):
    - Error Detection → Refund Transaction → Merchant Wallet → User Wallet
 
-## Project Structure
-
-```
-x402-ai-gateway/
-├── src/
-│   ├── app/
-│   │   └── api/
-│   │       └── ai/              # AI inference API endpoint
-│   ├── components/               # React components
-│   │   ├── chat/                # Chat UI components
-│   │   ├── solana/              # Solana wallet integration
-│   │   └── ui/                  # Shadcn UI components
-│   ├── features/
-│   │   └── dashboard/           # Main chat interface
-│   └── lib/                     # Utilities and helpers
-│       ├── x402-client.ts       # x402 protocol client
-│       ├── x402-receipts-instruction.ts  # Anchor instruction builder
-│       └── chat-history.ts     # Chat history management
-├── x402_receipts/               # Anchor program for receipts
-│   └── programs/
-│       └── x402_receipts/       # Solana program source (Rust)
-│           └── src/
-│               └── lib.rs       # Receipt recording instruction
-├── public/                      # Static assets
-└── .env.local                   # Environment configuration
-```
-
-## Development
-
-### Available Scripts
-
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run format       # Format code with Prettier
-npm run format:check # Check code formatting
-```
-
-### Anchor Program Development
-
-The Solana program is located in `x402_receipts/`. To work with it:
-
-```bash
-cd x402_receipts
-anchor build         # Build the program
-anchor deploy        # Deploy to configured cluster
-anchor test          # Run tests
-```
-
 ## Security
 
 Security is a top priority. Please review our [Security Policy](SECURITY.md) before reporting vulnerabilities.
@@ -382,10 +296,6 @@ Security is a top priority. Please review our [Security Policy](SECURITY.md) bef
 - Keep `MERCHANT_PRIVATE_KEY` secure and never expose to client-side code
 - Test on devnet before deploying to mainnet
 - Verify all transactions before signing
-
-## Contributing
-
-Contributions are welcome! Please read our [Security Policy](SECURITY.md) before submitting pull requests.
 
 ## License
 
