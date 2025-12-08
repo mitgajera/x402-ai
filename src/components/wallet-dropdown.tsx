@@ -44,18 +44,23 @@ function WalletDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="cursor-pointer">
+        <Button variant="outline" className="cursor-pointer text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3">
           {wallet?.icon ? <WalletAvatar wallet={wallet} /> : null}
-          {connected ? (account ? ellipsify(account.address) : wallet?.name) : 'Select Wallet'}
+          <span className="hidden sm:inline">
+            {connected ? (account ? ellipsify(account.address) : wallet?.name) : 'Select Wallet'}
+          </span>
+          <span className="sm:hidden">
+            {connected ? (account ? ellipsify(account.address, 4) : wallet?.name?.slice(0, 4)) : 'Wallet'}
+          </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent align="end" className="w-48 sm:w-56">
         {account ? (
           <>
-            <DropdownMenuItem className="cursor-pointer" onClick={copy}>
+            <DropdownMenuItem className="cursor-pointer text-sm" onClick={copy}>
               Copy address
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={disconnect}>
+            <DropdownMenuItem className="cursor-pointer text-sm" onClick={disconnect}>
               Disconnect
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -64,7 +69,7 @@ function WalletDropdown() {
         {wallets.length ? (
           wallets.map((wallet) => <WalletDropdownItem key={wallet.name} wallet={wallet} />)
         ) : (
-          <DropdownMenuItem className="cursor-pointer" asChild>
+          <DropdownMenuItem className="cursor-pointer text-sm" asChild>
             <a href="https://solana.com/solana-wallets" target="_blank" rel="noopener noreferrer">
               Get a Solana wallet to connect.
             </a>

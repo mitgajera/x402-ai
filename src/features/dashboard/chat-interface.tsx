@@ -3,18 +3,21 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSolana } from '@/components/solana/use-solana'
 import { WalletDropdown } from '@/components/wallet-dropdown'
-import { ChatMessageBubble } from '@/components/chat/chat-message'
-import { ChatInput } from '@/components/chat/chat-input'
+import { ChatMessageBubbleV2 } from '@/components/chat/chat-message-v2'
+import { ChatInputV2 } from '@/components/chat/chat-input-v2'
+import { ModelSelector } from '@/components/model-selector'
 import { Button } from '@/components/ui/button'
 import { X402AIClient, X402_MODELS, X402PaymentRequiredError } from '@/lib/x402-client'
-import { getChatHistory, saveChatMessage, clearChatHistory, getTotalMessageCount, type ChatMessage, MAX_MESSAGES } from '@/lib/chat-history'
+import { getChatHistory, saveChatMessage, getTotalMessageCount, type ChatMessage, MAX_MESSAGES } from '@/lib/chat-history'
 import { logger } from '@/lib/logger'
 import { getRecordReceiptInstruction } from '@/lib/x402-receipts-instruction'
 import { Address, AccountRole } from 'gill'
 import { useWalletUiSigner } from '@wallet-ui/react'
 import type { UiWalletAccount } from '@wallet-ui/react'
 import { toast } from 'sonner'
-import { Trash2, Sparkles } from 'lucide-react'
+import { Sparkles, MessageSquare, Zap, Settings2, ChevronDown, DollarSign, Bot, Lock } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { EmptyStatePrompts } from '@/components/empty-state-prompts'
 import { Connection, PublicKey, Transaction, SystemProgram, TransactionInstruction } from '@solana/web3.js'
 
 type GillClient = ReturnType<typeof useSolana>['client']
@@ -30,18 +33,71 @@ export function ChatInterface() {
 
   if (!account || !client) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-background px-4 text-center">
-        <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Connect Your Wallet</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">
-          Connect your Solana wallet to start using the x402 AI gateway and pay per request using SOL micropayments.
-        </p>
-        <WalletDropdown />
+      <div className="flex flex-col items-center justify-center flex-1 bg-gradient-to-br from-background via-background to-muted/5 px-3 sm:px-4 overflow-hidden">
+        <div className="max-w-6xl w-full space-y-6 sm:space-y-8 md:space-y-10 text-center py-12 sm:py-16 md:py-20">
+          {/* Animated Icon */}
+          <div className="relative flex items-center justify-center pt-4 sm:pt-6 md:pt-8">
+            <div className="absolute inset-0 bg-primary/15 blur-3xl rounded-md animate-float-infinite" />
+            <div className="relative">
+              <div className="bg-gradient-to-br from-primary/15 via-primary/10 to-primary/5 p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border border-primary/20 backdrop-blur-sm shadow-lg">
+                <Sparkles className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-primary" />
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="space-y-3 sm:space-y-4 px-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground via-foreground/95 to-foreground/80 bg-clip-text text-transparent">
+              Welcome to x402 AI
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base md:text-lg lg:text-xl max-w-2xl mx-auto leading-relaxed px-2">
+              Connect your Solana wallet to start chatting with AI models using secure, trustless micropayments
+            </p>
+          </div>
+
+          {/* CTA Button */}
+          <div className="pt-2">
+            <WalletDropdown />
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-4 py-10 pt-6 sm:pt-8 max-w-4xl mx-auto px-2">
+            <div className="flex flex-col items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-lg sm:rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:bg-card/80 hover:border-border transition-all hover:scale-[1.02] hover:shadow-md">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 rounded-lg sm:rounded-xl bg-primary/15 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <h3 className="text-xs sm:text-sm font-semibold">Pay Per Request</h3>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Only pay for what you use</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-lg sm:rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:bg-card/80 hover:border-border transition-all hover:scale-[1.02] hover:shadow-md">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 rounded-lg sm:rounded-xl bg-primary/15 flex items-center justify-center">
+                <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <h3 className="text-xs sm:text-sm font-semibold">Multiple Models</h3>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">ChatGPT, Gemini, Claude & more</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2 sm:gap-3 p-4 sm:p-5 rounded-lg sm:rounded-xl bg-card/60 border border-border/60 backdrop-blur-sm hover:bg-card/80 hover:border-border transition-all hover:scale-[1.02] hover:shadow-md">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 rounded-lg sm:rounded-xl bg-primary/15 flex items-center justify-center">
+                <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
+              <div className="space-y-0.5 sm:space-y-1">
+                <h3 className="text-xs sm:text-sm font-semibold">Trustless</h3>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Secure on-chain payments</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
-  return <ChatSession account={account} client={client} />
+  return (
+    <ChatSession account={account} client={client} />
+  )
 }
 
 function ChatSession({ account }: ChatSessionProps) {
@@ -99,7 +155,8 @@ function ChatSession({ account }: ChatSessionProps) {
 
     setMessages((prev) => [...prev, userMessage])
     saveChatMessage(account.address.toString(), userMessage)
-    setTotalMessages(getTotalMessageCount(account.address.toString()))
+    const newTotal = getTotalMessageCount(account.address.toString())
+    setTotalMessages(newTotal)
 
     try {
       const sdk = new X402AIClient({ endpoint })
@@ -819,7 +876,7 @@ function ChatSession({ account }: ChatSessionProps) {
                   : 'mainnet-beta'
                 
                 const refundMessage = refundSignature 
-                  ? `⚠️ Service Error\n\nThe AI service encountered an error after payment.\n\nYour payment of ${refundAmountSol} SOL has been automatically refunded.\n\nTransaction: https://explorer.solana.com/tx/${refundSignature}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}\n\nYou can try again or switch to a different AI model.\n\nIf you were charged, please contact support.`
+                  ? `Service Error\n\nThe AI service encountered an error after payment.\n\nYour payment of ${refundAmountSol} SOL has been automatically refunded.\n\nTransaction: https://explorer.solana.com/tx/${refundSignature}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}\n\nYou can try again or switch to a different AI model.\n\nIf you were charged, please contact support.`
                   : `✅ Refund Processing\n\nYour payment of ${refundAmountSol} SOL is being refunded.\n\nPlease wait a moment and check your wallet balance.`
                 throw new Error(refundMessage)
               } else {
@@ -864,7 +921,8 @@ function ChatSession({ account }: ChatSessionProps) {
 
       setMessages((prev) => [...prev, assistantMessage])
       saveChatMessage(account.address.toString(), assistantMessage)
-      setTotalMessages(getTotalMessageCount(account.address.toString()))
+      const newTotal = getTotalMessageCount(account.address.toString())
+      setTotalMessages(newTotal)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       
@@ -887,15 +945,7 @@ function ChatSession({ account }: ChatSessionProps) {
     }
   }
 
-  const handleClearHistory = () => {
-    if (account?.address) {
-      clearChatHistory(account.address.toString())
-      setMessages([])
-      setLoadedOffset(0)
-      setTotalMessages(0)
-      toast.success('Chat history cleared')
-    }
-  }
+  // Clear history is handled by context via header dropdown
 
   const handleLoadPreviousMessages = () => {
     if (!account?.address) return
@@ -914,84 +964,111 @@ function ChatSession({ account }: ChatSessionProps) {
 
   const hasMoreMessages = totalMessages > messages.length
 
-  if (!account) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <Sparkles className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Connect Your Wallet</h2>
-        <p className="text-muted-foreground mb-6">Connect your Solana wallet to start chatting with AI</p>
-        <WalletDropdown />
-      </div>
-    )
-  }
+  const [showModelSelector, setShowModelSelector] = useState(false)
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 py-3 max-w-4xl mx-auto w-full">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-semibold">x402 AI Gateway</h1>
-            <select
-              value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
-              className="text-sm rounded-md border border-input bg-background px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {X402_MODELS.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label} (~${model.priceUsd.toFixed(3)})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleClearHistory} disabled={messages.length === 0}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-            <WalletDropdown />
+    <div className="flex flex-col flex-1 bg-gradient-to-br from-background via-background to-muted/10 overflow-hidden">
+
+      {/* Model Selector - Collapsible */}
+      {showModelSelector && (
+        <div className="border-b bg-card/50 backdrop-blur-sm animate-in slide-in-from-top duration-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Select AI Model
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowModelSelector(false)}
+                className="h-6 w-6 p-0"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </div>
+            <ModelSelector selectedModelId={modelId} onSelect={(id) => {
+              setModelId(id)
+              setShowModelSelector(false)
+            }} />
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto">
+      {/* Chat Area */}
+      <div className={cn(
+        "flex-1 overflow-x-hidden",
+        messages.length === 0 ? "overflow-hidden" : "overflow-y-auto"
+      )}>
+        <div className={cn(
+          "max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8",
+          messages.length === 0 ? "h-full flex items-center justify-center py-6 sm:py-8" : "py-4 sm:py-6 md:py-8"
+        )}>
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
-              <p className="text-muted-foreground max-w-md">
-                Ask anything! Each message requires a small Solana payment via the x402 protocol.
-              </p>
+            <div className="flex flex-col items-center justify-center w-full text-center space-y-4 sm:space-y-6 px-2">
+              {/* Chat Logo */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full animate-pulse" />
+                <div className="relative bg-gradient-to-br from-muted/50 to-muted/30 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-border/50 backdrop-blur-sm">
+                  <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-primary mx-auto" />
+                </div>
+              </div>
+              
+              {/* Title */}
+              <div className="space-y-1.5 sm:space-y-2">
+                <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Start a conversation
+                </h3>
+                <p className="text-muted-foreground text-xs sm:text-sm md:text-base px-4">
+                  Click on the prompt below or type your own message
+                </p>
+              </div>
+              
+              {/* Prompt */}
+              <div className="w-full max-w-md flex justify-center px-2">
+                <EmptyStatePrompts onPromptSelect={(prompt) => {
+                  handleSendMessage(prompt)
+                }} />
+              </div>
             </div>
           ) : (
             <>
               {hasMoreMessages && (
-                <div className="flex justify-center mb-4">
+                <div className="flex justify-center mb-4 sm:mb-6">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleLoadPreviousMessages}
-                    className="text-xs"
+                    className="rounded-full text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
                   >
-                    Load Previous {Math.min(MAX_MESSAGES, totalMessages - messages.length)} Messages
+                    <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                    <span className="hidden sm:inline">
+                      Load Previous {Math.min(MAX_MESSAGES, totalMessages - messages.length)} Messages
+                    </span>
+                    <span className="sm:hidden">
+                      Load {Math.min(MAX_MESSAGES, totalMessages - messages.length)} More
+                    </span>
                   </Button>
                 </div>
               )}
               {messages.length >= MAX_MESSAGES && !hasMoreMessages && (
-                <div className="rounded-md bg-muted/50 border border-muted p-2 text-xs text-muted-foreground mb-4 text-center">
-                  Showing all {messages.length} messages.
+                <div className="rounded-lg sm:rounded-xl bg-muted/30 border border-border/50 p-2 sm:p-3 text-[10px] sm:text-xs text-muted-foreground mb-4 sm:mb-6 text-center backdrop-blur-sm">
+                  Showing all {messages.length} messages
                 </div>
               )}
               <div ref={messagesStartRef} />
               {messages.map((message) => (
-                <ChatMessageBubble key={message.id} message={message} />
+                <ChatMessageBubbleV2 key={message.id} message={message} />
               ))}
               {isLoading && (
-                <div className="flex gap-4 mb-6">
-                  <div className="h-8 w-8 shrink-0 rounded-full bg-muted animate-pulse" />
+                <div className="flex gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 animate-in fade-in slide-in-from-bottom-2">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full bg-gradient-to-br from-muted to-muted/80 animate-pulse ring-2 ring-muted" />
                   <div className="flex-1">
-                    <div className="inline-block rounded-lg px-4 py-2 bg-muted animate-pulse">
-                      <div className="h-4 w-32 bg-muted-foreground/20 rounded" />
+                    <div className="inline-block rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 bg-card border border-border/50 animate-pulse">
+                      <div className="flex gap-1.5 sm:gap-2">
+                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/20 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/20 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/20 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -999,77 +1076,86 @@ function ChatSession({ account }: ChatSessionProps) {
               <div ref={messagesEndRef} />
             </>
           )}
+          
           {error && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive mb-4 whitespace-pre-wrap">
-              {error.split('\n').map((line, idx) => {
-                // Check for any URLs first (this captures full URLs including query parameters)
-                const genericUrlMatch = line.match(/(https?:\/\/[^\s]+)/)
-                if (genericUrlMatch) {
-                  const url = genericUrlMatch[1]
-                  const parts = line.split(url)
-                  
-                  // Check if it's a Solana Explorer URL to show shortened transaction signature
-                  const explorerMatch = url.match(/explorer\.solana\.com\/tx\/([A-Za-z0-9]+)/)
-                  
-                  return (
-                    <div key={idx}>
-                      {parts[0]}
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={explorerMatch ? "text-primary hover:underline font-mono" : "text-primary hover:underline"}
-                      >
-                        {explorerMatch 
-                          ? `${explorerMatch[1].slice(0, 8)}...${explorerMatch[1].slice(-8)}`
-                          : url
-                        }
-                      </a>
-                      {parts[1]}
-                    </div>
-                  )
-                }
-                
-                // Also check for "Transaction:" line with just the signature (make it clickable)
-                const transactionLineMatch = line.match(/^Transaction:\s*([A-Za-z0-9]{8})\.\.\.([A-Za-z0-9]{8})$/)
-                if (transactionLineMatch) {
-                  // Find the full URL in the error message to get the complete transaction signature
-                  const fullError = error
-                  const urlMatch = fullError.match(/https:\/\/explorer\.solana\.com\/tx\/([A-Za-z0-9]+)/)
-                  if (urlMatch) {
-                    const txSig = urlMatch[1]
-                    const clusterName = cluster?.id?.includes('devnet') ? 'devnet' 
-                      : cluster?.id?.includes('testnet') ? 'testnet'
-                      : 'mainnet-beta'
-                    const explorerUrl = `https://explorer.solana.com/tx/${txSig}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}`
+            <div className="rounded-lg sm:rounded-xl bg-destructive/10 border-2 border-destructive/20 p-3 sm:p-4 mb-4 sm:mb-6 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-destructive/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-destructive text-[10px] sm:text-xs">!</span>
+                </div>
+                <div className="flex-1 text-xs sm:text-sm text-destructive whitespace-pre-wrap break-words">
+                  {error.split('\n').map((line, idx) => {
+                    const genericUrlMatch = line.match(/(https?:\/\/[^\s]+)/)
+                    if (genericUrlMatch) {
+                      const url = genericUrlMatch[1]
+                      const parts = line.split(url)
+                      const explorerMatch = url.match(/explorer\.solana\.com\/tx\/([A-Za-z0-9]+)/)
+                      
+                      return (
+                        <div key={idx} className="mb-1 last:mb-0">
+                          {parts[0]}
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              "font-mono hover:underline",
+                              explorerMatch ? "text-primary" : "text-primary"
+                            )}
+                          >
+                            {explorerMatch 
+                              ? `${explorerMatch[1].slice(0, 8)}...${explorerMatch[1].slice(-8)}`
+                              : url
+                            }
+                          </a>
+                          {parts[1]}
+                        </div>
+                      )
+                    }
                     
-                    return (
-                      <div key={idx}>
-                        Transaction:{' '}
-                        <a
-                          href={explorerUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline font-mono"
-                        >
-                          {transactionLineMatch[1]}...{transactionLineMatch[2]}
-                        </a>
-                      </div>
-                    )
-                  }
-                }
-                
-                return <div key={idx}>{line}</div>
-              })}
+                    const transactionLineMatch = line.match(/^Transaction:\s*([A-Za-z0-9]{8})\.\.\.([A-Za-z0-9]{8})$/)
+                    if (transactionLineMatch) {
+                      const fullError = error
+                      const urlMatch = fullError.match(/https:\/\/explorer\.solana\.com\/tx\/([A-Za-z0-9]+)/)
+                      if (urlMatch) {
+                        const txSig = urlMatch[1]
+                        const clusterName = cluster?.id?.includes('devnet') ? 'devnet' 
+                          : cluster?.id?.includes('testnet') ? 'testnet'
+                          : 'mainnet-beta'
+                        const explorerUrl = `https://explorer.solana.com/tx/${txSig}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}`
+                        
+                        return (
+                          <div key={idx} className="mb-1 last:mb-0">
+                            Transaction:{' '}
+                            <a
+                              href={explorerUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline font-mono"
+                            >
+                              {transactionLineMatch[1]}...{transactionLineMatch[2]}
+                            </a>
+                          </div>
+                        )
+                      }
+                    }
+                    
+                    return <div key={idx} className="mb-1 last:mb-0">{line}</div>
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      <ChatInput
+      {/* Input Area */}
+      <ChatInputV2
         onSend={handleSendMessage}
         disabled={isLoading}
-        placeholder={`Message ${selectedModel.label}... (Pay ~$${selectedModel.priceUsd.toFixed(3)} per message)`}
+        placeholder={`Message ${selectedModel.label.split('(')[0].trim()}...`}
+        selectedModelId={modelId}
+        onModelSelect={setModelId}
       />
     </div>
   )

@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { SolanaClusterId, useWalletUi, useWalletUiCluster } from '@wallet-ui/react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +19,11 @@ export function ClusterDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">{cluster.label}</Button>
+        <Button variant="outline" className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3">
+          {cluster.label}
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56">
+      <DropdownMenuContent className="w-48 sm:w-56" align="end">
         <DropdownMenuRadioGroup 
           value={cluster.id} 
           onValueChange={(clusterId) => {
@@ -40,10 +43,13 @@ export function ClusterDropdown() {
                 key={c.id} 
                 value={c.id}
                 disabled={isUnavailable}
-                className={isUnavailable ? 'opacity-50 cursor-not-allowed' : ''}
+                className={cn(
+                  isUnavailable ? 'opacity-50 cursor-not-allowed' : '',
+                  'text-sm'
+                )}
               >
                 {c.label}
-                {isUnavailable && <span className="text-xs text-muted-foreground">(Coming Soon...)</span>}
+                {isUnavailable && <span className="text-xs text-muted-foreground ml-1">(Coming Soon...)</span>}
               </DropdownMenuRadioItem>
             )
           })}

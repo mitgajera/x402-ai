@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bot, User } from 'lucide-react'
 import { type ChatMessage } from '@/lib/chat-history'
 import { X402_MODELS } from '@/lib/x402-client'
-import { OpenAIIcon, GoogleIcon, AnthropicIcon, PerplexityIcon } from '@/components/llm-icons'
+import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon } from '@/components/llm-icons'
 import ReactMarkdown from 'react-markdown'
 
 function getModelIcon(modelId: string) {
@@ -15,7 +15,7 @@ function getModelIcon(modelId: string) {
     case 'openai':
       return <OpenAIIcon className="h-4 w-4" />
     case 'google':
-      return <GoogleIcon className="h-4 w-4" />
+      return <GeminiIcon className="h-4 w-4" />
     case 'anthropic':
       return <AnthropicIcon className="h-4 w-4" />
     case 'perplexity':
