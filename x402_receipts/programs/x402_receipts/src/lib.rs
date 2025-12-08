@@ -33,6 +33,7 @@ pub mod x402_receipts {
         receipt.reference = reference;
         receipt.model_id = model_id;
         receipt.amount = amount;
+        // Allow empty tx_sig for same-transaction calls (will be updated after confirmation)
         receipt.tx_sig = tx_sig;
         receipt.timestamp = Clock::get()?.unix_timestamp;
 
