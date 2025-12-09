@@ -1,4 +1,4 @@
-type SupportedModelId = 'gpt-4o' | 'gemini-2.5-flash-lite' | 'perplexity-sonar' | 'claude-3.5-sonnet'
+type SupportedModelId = 'gpt-4o' | 'gemini-2.5-flash-lite' | 'sonar-pro' | 'claude-3.5-sonnet'
 
 export type X402ModelConfig = {
   id: SupportedModelId
@@ -21,8 +21,8 @@ export const X402_MODELS: X402ModelConfig[] = [
     priceUsd: 0.05,
   },
   {
-    id: 'perplexity-sonar',
-    label: 'Perplexity Sonar',
+    id: 'sonar-pro',
+    label: 'Perplexity Sonar-Pro',
     provider: 'perplexity',
     priceUsd: 0.02,
   },

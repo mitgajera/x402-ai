@@ -540,9 +540,9 @@ export async function POST(request: NextRequest) {
         
         // Map model IDs to Perplexity model names
         const perplexityModelMap: Record<string, string> = {
-          'perplexity-sonar': 'sonar-small-online',
+          'sonar-pro': 'sonar-pro',
         }
-        const perplexityModel = perplexityModelMap[modelId] || 'sonar-small-online'
+        const perplexityModel = perplexityModelMap[modelId] || 'sonar-pro'
         
         const response = await fetch('https://api.perplexity.ai/chat/completions', {
           method: 'POST',
