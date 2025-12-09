@@ -7,7 +7,7 @@ import { ChatMessageBubbleV2 } from '@/components/chat/chat-message-v2'
 import { ChatInputV2 } from '@/components/chat/chat-input-v2'
 import { ModelSelector } from '@/components/model-selector'
 import { Button } from '@/components/ui/button'
-import { X402AIClient, X402_MODELS, X402PaymentRequiredError } from '@/lib/x402-client'
+import { X402AIClient, X402_MODELS, X402PaymentRequiredError, type X402CompletionResponse } from '@/lib/x402-client'
 import { getChatHistory, saveChatMessage, getTotalMessageCount, type ChatMessage, MAX_MESSAGES } from '@/lib/chat-history'
 import { logger } from '@/lib/logger'
 import { getRecordReceiptInstruction } from '@/lib/x402-receipts-instruction'
@@ -19,6 +19,8 @@ import { Sparkles, MessageSquare, Zap, Settings2, ChevronDown, DollarSign, Bot, 
 import { cn } from '@/lib/utils'
 import { EmptyStatePrompts } from '@/components/empty-state-prompts'
 import { Connection, PublicKey, Transaction, SystemProgram, TransactionInstruction } from '@solana/web3.js'
+import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon, GrokIcon, DeepSeekIcon } from '@/components/llm-icons'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 type GillClient = ReturnType<typeof useSolana>['client']
 
@@ -100,6 +102,49 @@ export function ChatInterface() {
   )
 }
 
+function TypingIndicator({ modelId }: { modelId: string }) {
+  const getModelIcon = (modelId: string) => {
+    const model = X402_MODELS.find(m => m.id === modelId)
+    if (!model) return <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+    
+    switch (model.provider) {
+      case 'openai':
+        return <OpenAIIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      case 'google':
+        return <GeminiIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      case 'anthropic':
+        return <AnthropicIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      case 'perplexity':
+        return <PerplexityIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      case 'xai':
+        return <GrokIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      case 'deepseek':
+        return <DeepSeekIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      default:
+        return <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+    }
+  }
+
+  return (
+    <div className="flex gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <Avatar className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 ring-2 ring-muted">
+        <AvatarFallback className="bg-gradient-to-br from-muted to-muted/80">
+          {getModelIcon(modelId)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1 flex items-center">
+        <div className="inline-block rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 bg-card border border-border/50">
+          <div className="flex gap-1.5 sm:gap-2">
+            <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ChatSession({ account }: ChatSessionProps) {
   const signer = useWalletUiSigner({ account })
   const { cluster, wallet, connected } = useSolana()
@@ -122,7 +167,12 @@ function ChatSession({ account }: ChatSessionProps) {
   useEffect(() => {
     const history = getChatHistory(account.address.toString(), MAX_MESSAGES, 0)
     const total = getTotalMessageCount(account.address.toString())
-    setMessages(history)
+    // Deduplicate messages by ID and filter out empty assistant messages
+    const uniqueMessages = history.filter((msg, index, self) => 
+      index === self.findIndex(m => m.id === msg.id) && 
+      (msg.content.trim() || msg.role === 'user')
+    )
+    setMessages(uniqueMessages)
     setLoadedOffset(0)
     setTotalMessages(total)
     return () => {
@@ -158,16 +208,54 @@ function ChatSession({ account }: ChatSessionProps) {
     const newTotal = getTotalMessageCount(account.address.toString())
     setTotalMessages(newTotal)
 
+    // Create assistant message ID for streaming (but don't add empty message to array)
+    const assistantMessageId = `assistant-${Date.now()}`
+
     try {
       const sdk = new X402AIClient({ endpoint })
 
-      let response
+      let response: X402CompletionResponse | undefined
+      let streamingContent = ''
+      let messageAdded = false
       try {
-        response = await sdk.completion({
-          prompt: content,
-          modelId: selectedModel.id,
-        })
+        response = await sdk.completion(
+          {
+            prompt: content,
+            modelId: selectedModel.id,
+          },
+          (chunk: string) => {
+            // Update message content as chunks arrive
+            streamingContent += chunk
+            setMessages((prev) => {
+              const existing = prev.find(msg => msg.id === assistantMessageId)
+              if (existing) {
+                // Update existing message
+                return prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: streamingContent }
+                    : msg
+                )
+              } else {
+                // Add message when we have first chunk
+                if (!messageAdded && streamingContent.trim()) {
+                  messageAdded = true
+                  // Hide typing indicator as soon as first chunk arrives
+                  setIsLoading(false)
+                  return [...prev, {
+                    id: assistantMessageId,
+                    role: 'assistant' as const,
+                    content: streamingContent,
+                    modelId: selectedModel.id,
+                    timestamp: Date.now(),
+                  }]
+                }
+                return prev
+              }
+            })
+          }
+        )
       } catch (err) {
+        // If we already have streaming content, preserve it
         if (err instanceof X402PaymentRequiredError) {
           const { paymentRequirements } = err
 
@@ -832,6 +920,7 @@ function ChatSession({ account }: ChatSessionProps) {
               throw new Error(`Invalid transaction signature: ${String(txSignature)}`)
             }
 
+            // Handle streaming response after payment
             const retry = await fetch(endpoint, {
               method: 'POST',
               headers: {
@@ -840,6 +929,7 @@ function ChatSession({ account }: ChatSessionProps) {
                   txSignature,
                   reference: paymentRequirements.reference,
                 }),
+                'X-STREAM': 'true', // Enable streaming
               },
               body: JSON.stringify({
                 prompt: content,
@@ -885,7 +975,102 @@ function ChatSession({ account }: ChatSessionProps) {
               }
             }
 
-            response = (await retry.json()) as { output: string; modelId: string }
+            // Handle streaming response after payment
+            // Reset streamingContent for payment retry (don't shadow outer variable)
+            streamingContent = ''
+            if (retry.headers.get('content-type')?.includes('text/event-stream')) {
+              const reader = retry.body?.getReader()
+              const decoder = new TextDecoder()
+              let buffer = ''
+              let modelId = selectedModel.id
+              let usage = { inputTokens: 0, outputTokens: 0 }
+
+              if (reader) {
+                try {
+                  while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) break
+
+                    buffer += decoder.decode(value, { stream: true })
+                    const lines = buffer.split('\n\n')
+                    buffer = lines.pop() || ''
+
+                    for (const line of lines) {
+                      if (line.startsWith('data: ')) {
+                        try {
+                          const data = JSON.parse(line.slice(6))
+                          if (data.type === 'start') {
+                            modelId = data.modelId || selectedModel.id
+                          } else if (data.type === 'chunk') {
+                            streamingContent += data.content
+                            setMessages((prev) => {
+                              const existing = prev.find(msg => msg.id === assistantMessageId)
+                              if (existing) {
+                                // Update existing message
+                                return prev.map((msg) =>
+                                  msg.id === assistantMessageId
+                                    ? { ...msg, content: streamingContent, modelId }
+                                    : msg
+                                )
+                              } else {
+                                // Add message when we have first chunk
+                                if (streamingContent.trim()) {
+                                  // Hide typing indicator as soon as first chunk arrives
+                                  setIsLoading(false)
+                                  return [...prev, {
+                                    id: assistantMessageId,
+                                    role: 'assistant' as const,
+                                    content: streamingContent,
+                                    modelId,
+                                    timestamp: Date.now(),
+                                  }]
+                                }
+                                return prev
+                              }
+                            })
+                          } else if (data.type === 'done') {
+                            usage = data.usage || usage
+                          }
+                        } catch (e) {
+                          logger.warn('Error parsing streaming data:', e)
+                          // Skip invalid JSON but continue processing
+                        }
+                      }
+                    }
+                  }
+                } catch (streamError) {
+                  logger.error('Streaming error:', streamError)
+                  throw new Error(`Failed to read streaming response: ${streamError instanceof Error ? streamError.message : String(streamError)}`)
+                }
+              } else {
+                throw new Error('Stream reader not available')
+              }
+
+              // Ensure we have content before setting response
+              if (!streamingContent.trim()) {
+                throw new Error('Received empty response from AI service after payment')
+              }
+
+              response = {
+                output: streamingContent,
+                modelId,
+                usage,
+              }
+              // Message will be saved in the final update below to avoid duplication
+            } else {
+              const jsonResponse = await retry.json() as { output?: string; modelId?: string; error?: string }
+              if (jsonResponse.error) {
+                throw new Error(jsonResponse.error)
+              }
+              if (!jsonResponse.output) {
+                throw new Error('Received empty response from AI service after payment')
+              }
+              response = {
+                output: jsonResponse.output,
+                modelId: jsonResponse.modelId || selectedModel.id,
+                usage: { inputTokens: 0, outputTokens: 0 },
+              }
+            }
           } catch (paymentError) {
             // If paymentError is already a refund message or service error, re-throw it as-is
             if (paymentError instanceof Error) {
@@ -911,19 +1096,58 @@ function ChatSession({ account }: ChatSessionProps) {
         }
       }
 
-      const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: response.output,
-        modelId: response.modelId,
-        timestamp: Date.now(),
+      // Update final message with complete response
+      // Use response.output if available (from non-streaming), otherwise use streamingContent
+      const finalContent = response?.output || streamingContent
+      
+      // Check if we have content - if not, show an error
+      if (!finalContent || !finalContent.trim()) {
+        throw new Error('No response received from AI service. Please try again.')
       }
-
-      setMessages((prev) => [...prev, assistantMessage])
-      saveChatMessage(account.address.toString(), assistantMessage)
-      const newTotal = getTotalMessageCount(account.address.toString())
-      setTotalMessages(newTotal)
+      
+      // Update message with content
+      {
+        setMessages((prev) => {
+          const existing = prev.find(msg => msg.id === assistantMessageId)
+          if (existing) {
+            // Update existing message
+            return prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? {
+                    ...msg,
+                    content: finalContent,
+                    modelId: response?.modelId || msg.modelId,
+                  }
+                : msg
+            )
+          } else {
+            // Add message if it doesn't exist yet
+            return [...prev, {
+              id: assistantMessageId,
+              role: 'assistant' as const,
+              content: finalContent,
+              modelId: response?.modelId || selectedModel.id,
+              timestamp: Date.now(),
+            }]
+          }
+        })
+        
+        // Save the final message only once
+        const finalMessage: ChatMessage = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: finalContent,
+          modelId: response?.modelId || selectedModel.id,
+          timestamp: Date.now(),
+        }
+        saveChatMessage(account.address.toString(), finalMessage)
+        const newTotal = getTotalMessageCount(account.address.toString())
+        setTotalMessages(newTotal)
+      }
     } catch (err) {
+      // Remove the assistant message if there was an error
+      setMessages((prev) => prev.filter((msg) => msg.id !== assistantMessageId))
+      
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       
       // Handle refund messages - show success toast and error banner
@@ -1056,22 +1280,11 @@ function ChatSession({ account }: ChatSessionProps) {
                 </div>
               )}
               <div ref={messagesStartRef} />
-              {messages.map((message) => (
+              {messages.filter(msg => msg.content.trim() || msg.role === 'user').map((message) => (
                 <ChatMessageBubbleV2 key={message.id} message={message} />
               ))}
               {isLoading && (
-                <div className="flex gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full bg-gradient-to-br from-muted to-muted/80 animate-pulse ring-2 ring-muted" />
-                  <div className="flex-1">
-                    <div className="inline-block rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 bg-card border border-border/50 animate-pulse">
-                      <div className="flex gap-1.5 sm:gap-2">
-                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/20 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/20 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-muted-foreground/20 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <TypingIndicator modelId={selectedModel.id} />
               )}
               <div ref={messagesEndRef} />
             </>

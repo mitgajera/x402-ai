@@ -98,6 +98,8 @@ type AIRequest = {
 
 export async function POST(request: NextRequest) {
   const paymentHeader = request.headers.get('X-PAYMENT')
+  // Always enable streaming to avoid exposing full responses in network tab
+  const streamHeader = request.headers.get('X-STREAM') !== 'false'
   
   try {
     const body: AIRequest = await request.json()
@@ -407,6 +409,7 @@ export async function POST(request: NextRequest) {
             model: openaiModel,
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
+            stream: streamHeader, // Enable streaming if requested
           }),
         })
 
@@ -426,6 +429,78 @@ export async function POST(request: NextRequest) {
           throw new Error(`OpenAI API error: ${errorMessage}`)
         }
 
+        // Handle streaming response
+        if (streamHeader && response.body) {
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+          let fullOutput = ''
+          let finalUsage = { inputTokens: 0, outputTokens: 0 }
+
+          const stream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder()
+              try {
+                // Send start event
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', modelId: openaiModel })}\n\n`))
+
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+
+                  buffer += decoder.decode(value, { stream: true })
+                  const lines = buffer.split('\n')
+                  buffer = lines.pop() || ''
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      const data = line.slice(6)
+                      if (data === '[DONE]') {
+                        // Send final usage and done event
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', usage: finalUsage })}\n\n`))
+                        controller.close()
+                        return
+                      }
+
+                      try {
+                        const json = JSON.parse(data)
+                        const delta = json.choices?.[0]?.delta
+                        if (delta?.content) {
+                          fullOutput += delta.content
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: delta.content })}\n\n`))
+                        }
+                        if (json.usage) {
+                          finalUsage = {
+                            inputTokens: json.usage.prompt_tokens || 0,
+                            outputTokens: json.usage.completion_tokens || 0,
+                          }
+                        }
+                      } catch (e) {
+                        // Skip invalid JSON
+                      }
+                    }
+                  }
+                }
+
+                output = fullOutput
+                usage = finalUsage
+                controller.close()
+              } catch (error) {
+                controller.error(error)
+              }
+            },
+          })
+
+          return new Response(stream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          })
+        }
+
+        // Non-streaming response
         const data = await response.json()
         output = data.choices[0]?.message?.content || 'No response from OpenAI'
         usage = {
@@ -580,12 +655,261 @@ export async function POST(request: NextRequest) {
         }
         break
       }
+      case 'xai': {
+        const apiKey = process.env.XAI_API_KEY
+        if (!apiKey) {
+          throw new Error('XAI_API_KEY not configured')
+        }
+        
+        // Map model IDs to xAI model names
+        const xaiModelMap: Record<string, string> = {
+          'grok-beta': 'grok-beta',
+        }
+        const xaiModel = xaiModelMap[modelId] || 'grok-beta'
+        
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: xaiModel,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            stream: streamHeader, // Enable streaming if requested
+          }),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          let errorObj: { error?: { message?: string } } | null = null
+          try {
+            errorObj = JSON.parse(errorText) as { error?: { message?: string } }
+          } catch {
+            errorObj = { error: { message: errorText } }
+          }
+          
+          const errorMessage = errorObj?.error?.message || errorText
+          if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+            throw new Error(`xAI API error: The AI service quota has been exceeded. Please try again later or contact the service provider.`)
+          }
+          throw new Error(`xAI API error: ${errorMessage}`)
+        }
+
+        // Handle streaming response (xAI uses OpenAI-compatible streaming)
+        if (streamHeader && response.body) {
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+          let fullOutput = ''
+          let finalUsage = { inputTokens: 0, outputTokens: 0 }
+
+          const stream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder()
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', modelId: xaiModel })}\n\n`))
+
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+
+                  buffer += decoder.decode(value, { stream: true })
+                  const lines = buffer.split('\n')
+                  buffer = lines.pop() || ''
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      const data = line.slice(6)
+                      if (data === '[DONE]') {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', usage: finalUsage })}\n\n`))
+                        controller.close()
+                        return
+                      }
+
+                      try {
+                        const json = JSON.parse(data)
+                        const delta = json.choices?.[0]?.delta
+                        if (delta?.content) {
+                          fullOutput += delta.content
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: delta.content })}\n\n`))
+                        }
+                        if (json.usage) {
+                          finalUsage = {
+                            inputTokens: json.usage.prompt_tokens || 0,
+                            outputTokens: json.usage.completion_tokens || 0,
+                          }
+                        }
+                      } catch (e) {
+                        // Skip invalid JSON
+                      }
+                    }
+                  }
+                }
+
+                output = fullOutput
+                usage = finalUsage
+                controller.close()
+              } catch (error) {
+                controller.error(error)
+              }
+            },
+          })
+
+          return new Response(stream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          })
+        }
+
+        // Non-streaming response
+        const data = await response.json()
+        output = data.choices[0]?.message?.content || 'No response from xAI'
+        usage = {
+          inputTokens: data.usage?.prompt_tokens || 0,
+          outputTokens: data.usage?.completion_tokens || 0,
+        }
+        break
+      }
+      case 'deepseek': {
+        const apiKey = process.env.DEEPSEEK_API_KEY
+        if (!apiKey) {
+          throw new Error('DEEPSEEK_API_KEY not configured')
+        }
+        
+        // Map model IDs to DeepSeek model names
+        const deepseekModelMap: Record<string, string> = {
+          'deepseek-chat': 'deepseek-chat',
+        }
+        const deepseekModel = deepseekModelMap[modelId] || 'deepseek-chat'
+        
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: deepseekModel,
+            messages: [
+              { role: 'system', content: 'You are a helpful AI assistant. Always respond in English unless the user explicitly asks you to use another language.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            stream: streamHeader, // Enable streaming if requested
+          }),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          let errorObj: { error?: { message?: string } } | null = null
+          try {
+            errorObj = JSON.parse(errorText) as { error?: { message?: string } }
+          } catch {
+            errorObj = { error: { message: errorText } }
+          }
+          
+          const errorMessage = errorObj?.error?.message || errorText
+          if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+            throw new Error(`DeepSeek API error: The AI service quota has been exceeded. Please try again later or contact the service provider.`)
+          }
+          throw new Error(`DeepSeek API error: ${errorMessage}`)
+        }
+
+        // Handle streaming response (DeepSeek uses OpenAI-compatible streaming)
+        if (streamHeader && response.body) {
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+          let fullOutput = ''
+          let finalUsage = { inputTokens: 0, outputTokens: 0 }
+
+          const stream = new ReadableStream({
+            async start(controller) {
+              const encoder = new TextEncoder()
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', modelId: deepseekModel })}\n\n`))
+
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+
+                  buffer += decoder.decode(value, { stream: true })
+                  const lines = buffer.split('\n')
+                  buffer = lines.pop() || ''
+
+                  for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                      const data = line.slice(6)
+                      if (data === '[DONE]') {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', usage: finalUsage })}\n\n`))
+                        controller.close()
+                        return
+                      }
+
+                      try {
+                        const json = JSON.parse(data)
+                        const delta = json.choices?.[0]?.delta
+                        if (delta?.content) {
+                          fullOutput += delta.content
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: delta.content })}\n\n`))
+                        }
+                        if (json.usage) {
+                          finalUsage = {
+                            inputTokens: json.usage.prompt_tokens || 0,
+                            outputTokens: json.usage.completion_tokens || 0,
+                          }
+                        }
+                      } catch (e) {
+                        // Skip invalid JSON
+                      }
+                    }
+                  }
+                }
+
+                output = fullOutput
+                usage = finalUsage
+                controller.close()
+              } catch (error) {
+                controller.error(error)
+              }
+            },
+          })
+
+          return new Response(stream, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
+          })
+        }
+
+        // Non-streaming response
+        const data = await response.json()
+        output = data.choices[0]?.message?.content || 'No response from DeepSeek'
+        usage = {
+          inputTokens: data.usage?.prompt_tokens || 0,
+          outputTokens: data.usage?.completion_tokens || 0,
+        }
+        break
+      }
       default:
         throw new Error(`Unknown provider: ${model.provider}`)
     }
 
     // TODO: Optionally record receipt on-chain via Anchor program
 
+    // If we reach here without streaming, return the output
+    // (This happens when provider doesn't support streaming or streaming is disabled)
+    if (!output || !output.trim()) {
+      throw new Error('No response received from AI service')
+    }
+    
     return NextResponse.json({
       output,
       modelId,

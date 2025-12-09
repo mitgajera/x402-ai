@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { ThemeSelect } from '@/components/theme-select'
 import { WalletDropdown } from '@/components/wallet-dropdown'
 import { Sparkles, Trash2, ChevronDown, ExternalLink } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { useChatContext } from '@/contexts/chat-context'
 import { useSolana } from '@/components/solana/use-solana'
 import { getTotalMessageCount, clearChatHistory, clearLastNMessages } from '@/lib/chat-history'
@@ -25,7 +24,6 @@ const ClusterDropdown = dynamic(() => import('@/components/cluster-dropdown').th
 
 export function AppHeader() {
   const { account } = useSolana()
-  const { resolvedTheme } = useTheme()
   const { onClearHistory, onClearLast10, canClear: contextCanClear } = useChatContext()
   const [canClear, setCanClear] = useState(false)
   const [messageCount, setMessageCount] = useState(0)
@@ -136,24 +134,14 @@ export function AppHeader() {
             <Button asChild variant="outline" size="sm" className="h-8 sm:h-9 px-2 sm:px-3">
               <a href="https://github.com/mitgajera/x402-ai" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
                 <span className="hidden sm:inline">GitHub</span>
-                {resolvedTheme === 'dark' ? (
-                  <img 
-                    width="20" 
-                    height="20" 
-                    src="https://img.icons8.com/material-outlined/24/github.png" 
-                    alt="github"
-                    className="h-5 w-5 sm:h-4 sm:w-4 opacity-90"
-                    style={{ filter: 'brightness(0) invert(1)' }}
-                  />
-                ) : (
-                  <img 
-                    width="20" 
-                    height="20" 
-                    src="https://img.icons8.com/fluency-systems-regular/48/github.png" 
-                    alt="github"
-                    className="h-5 w-5 sm:h-4 sm:w-4"
-                  />
-                )}
+                <img 
+                  width="20" 
+                  height="20" 
+                  src="https://img.icons8.com/material-outlined/24/github.png" 
+                  alt="github"
+                  className="h-5 w-5 sm:h-4 sm:w-4 opacity-90 dark:brightness-0 dark:invert"
+                  suppressHydrationWarning
+                />
               </a>
             </Button>
             <ThemeSelect />

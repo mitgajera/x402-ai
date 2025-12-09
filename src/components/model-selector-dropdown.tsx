@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, Sparkles, CircleIcon } from 'lucide-react'
-import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon } from '@/components/llm-icons'
+import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon, GrokIcon, DeepSeekIcon } from '@/components/llm-icons'
 import { cn } from '@/lib/utils'
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 
@@ -29,6 +29,10 @@ function getModelIcon(model: X402ModelConfig, className?: string) {
       return <AnthropicIcon className={className} />
     case 'perplexity':
       return <PerplexityIcon className={className} />
+    case 'xai':
+      return <GrokIcon className={className} />
+    case 'deepseek':
+      return <DeepSeekIcon className={className} />
     default:
       return <Sparkles className={className} />
   }
@@ -66,7 +70,7 @@ export function ModelSelectorDropdown({ selectedModelId, onSelect }: ModelSelect
           <ChevronDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[200px] sm:w-[220px] max-h-[70vh] overflow-y-auto">
+      <DropdownMenuContent align="start" className="w-[200px] sm:w-[220px] max-h-[210px] overflow-y-auto">
         <DropdownMenuRadioGroup value={selectedModelId} onValueChange={onSelect}>
           {X402_MODELS.map((model) => {
             const isModelFree = model.label.includes('FREE')

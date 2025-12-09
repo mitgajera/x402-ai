@@ -11,14 +11,39 @@ const nextConfig: NextConfig = {
       
       // Optimize module resolution to reduce Network tab clutter
       if (dev) {
+        // Use eval source map - faster and shows less detail in network tab
+        // This reduces the number of individual module files shown
+        config.devtool = 'eval'
+        
         config.optimization = {
           ...config.optimization,
           moduleIds: 'deterministic',
           minimize: false,
+          // Chunk modules to reduce individual file requests
+          splitChunks: {
+            chunks: 'all',
+            cacheGroups: {
+              default: false,
+              vendors: false,
+              // Group vendor chunks - this bundles node_modules together
+              vendor: {
+                name: 'vendor',
+                chunks: 'all',
+                test: /[\\/]node_modules[\\/]/,
+                priority: 20,
+                enforce: true,
+              },
+              // Group common chunks
+              common: {
+                name: 'common',
+                minChunks: 2,
+                chunks: 'all',
+                priority: 10,
+                reuseExistingChunk: true,
+              },
+            },
+          },
         }
-        
-        // Exclude node_modules from source maps
-        config.devtool = 'eval-cheap-module-source-map'
       }
     }
     
@@ -48,6 +73,12 @@ const nextConfig: NextConfig = {
       fullUrl: false,
     },
   },
+  
+  // Suppress React hydration warnings in development
+  reactStrictMode: true,
+  
+  // Optimize production builds
+  productionBrowserSourceMaps: false,
 }
 
 export default nextConfig

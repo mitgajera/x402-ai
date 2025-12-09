@@ -4,11 +4,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { User } from 'lucide-react'
 import { type ChatMessage } from '@/lib/chat-history'
 import { X402_MODELS } from '@/lib/x402-client'
-import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon } from '@/components/llm-icons'
+import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon, GrokIcon, DeepSeekIcon } from '@/components/llm-icons'
 import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { Sparkles } from 'lucide-react'
 import { CopyButton } from '@/components/copy-button'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useTheme } from 'next-themes'
 
 function getModelIcon(modelId: string, className?: string) {
   const model = X402_MODELS.find(m => m.id === modelId)
@@ -23,6 +26,10 @@ function getModelIcon(modelId: string, className?: string) {
       return <AnthropicIcon className={className} />
     case 'perplexity':
       return <PerplexityIcon className={className} />
+    case 'xai':
+      return <GrokIcon className={className} />
+    case 'deepseek':
+      return <DeepSeekIcon className={className} />
     default:
       return <Sparkles className={className} />
   }
@@ -118,49 +125,22 @@ export function ChatMessageBubbleV2({ message }: { message: ChatMessage }) {
   )
 }
 
-// Enhanced markdown component with copy buttons for code blocks
+// Enhanced markdown component with copy buttons and syntax highlighting for code blocks
 function MarkdownContent({ content }: { content: string }) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+  
   return (
     <div className="text-sm sm:text-base leading-relaxed">
       <ReactMarkdown
         components={{
           pre: ({ children, ...props }) => {
-            // Extract code content from children
-            let codeContent = ''
-            if (children && typeof children === 'object' && 'props' in children) {
-              const codeProps = (children as { props?: { children?: string | Array<{ props?: { children?: string } } | string> } }).props
-              if (codeProps?.children) {
-                if (typeof codeProps.children === 'string') {
-                  codeContent = codeProps.children
-                } else if (Array.isArray(codeProps.children)) {
-                  codeContent = codeProps.children
-                    .map((c) => (typeof c === 'string' ? c : (c as { props?: { children?: string } })?.props?.children || ''))
-                    .join('')
-                }
-              }
-            }
-            
-            return (
-              <div className="relative group/codeblock my-2">
-                {codeContent && (
-                  <CopyButton 
-                    text={codeContent} 
-                    size="sm"
-                    className="absolute top-2 right-2 opacity-0 group-hover/codeblock:opacity-100 z-10"
-                  />
-                )}
-                <pre 
-                  {...props}
-                  className="bg-muted/50 p-3 rounded-lg overflow-x-auto [&_code]:bg-transparent [&_code]:p-0"
-                >
-                  {children}
-                </pre>
-              </div>
-            )
+            return <>{children}</>
           },
           code: ({ className, children, ...props }) => {
             const match = /language-(\w+)/.exec(className || '')
             const isInline = !match
+            const language = match ? match[1] : ''
             
             if (isInline) {
               return (
@@ -173,10 +153,32 @@ function MarkdownContent({ content }: { content: string }) {
               )
             }
             
+            // Extract code content as string
+            const codeString = String(children).replace(/\n$/, '')
+            
             return (
-              <code className={className} {...props}>
-                {children}
-              </code>
+              <div className="relative group/codeblock my-2">
+                <CopyButton 
+                  text={codeString} 
+                  size="sm"
+                  className="absolute top-2 right-2 opacity-0 group-hover/codeblock:opacity-100 z-10"
+                />
+                <SyntaxHighlighter
+                  language={language}
+                  style={isDark ? oneDark : oneLight}
+                  customStyle={{
+                    margin: 0,
+                    borderRadius: '0.5rem',
+                    padding: '1rem',
+                    fontSize: '0.875rem',
+                    lineHeight: '1.5',
+                  }}
+                  PreTag="div"
+                  {...props}
+                >
+                  {codeString}
+                </SyntaxHighlighter>
+              </div>
             )
           },
           p: ({ children }) => (

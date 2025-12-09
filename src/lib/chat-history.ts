@@ -88,7 +88,15 @@ export function saveChatMessage(walletAddress: string, message: ChatMessage): vo
       }
     }
     
-    messages.push(message)
+    // Check if message with same ID already exists - update it instead of adding duplicate
+    const existingIndex = messages.findIndex(msg => msg.id === message.id)
+    if (existingIndex >= 0) {
+      // Update existing message
+      messages[existingIndex] = message
+    } else {
+      // Add new message
+      messages.push(message)
+    }
     
     const maxAge = Date.now() - (MAX_AGE_DAYS * 24 * 60 * 60 * 1000)
     messages = messages.filter(msg => msg.timestamp >= maxAge)

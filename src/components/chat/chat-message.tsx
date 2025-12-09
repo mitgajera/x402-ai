@@ -4,8 +4,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Bot, User } from 'lucide-react'
 import { type ChatMessage } from '@/lib/chat-history'
 import { X402_MODELS } from '@/lib/x402-client'
-import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon } from '@/components/llm-icons'
+import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon, GrokIcon, DeepSeekIcon } from '@/components/llm-icons'
 import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useTheme } from 'next-themes'
+import { CopyButton } from '@/components/copy-button'
 
 function getModelIcon(modelId: string) {
   const model = X402_MODELS.find(m => m.id === modelId)
@@ -20,6 +24,10 @@ function getModelIcon(modelId: string) {
       return <AnthropicIcon className="h-4 w-4" />
     case 'perplexity':
       return <PerplexityIcon className="h-4 w-4" />
+    case 'xai':
+      return <GrokIcon className="h-4 w-4" />
+    case 'deepseek':
+      return <DeepSeekIcon className="h-4 w-4" />
     default:
       return <Bot className="h-4 w-4" />
   }
@@ -27,6 +35,8 @@ function getModelIcon(modelId: string) {
 
 export function ChatMessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
 
   return (
     <div className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'} mb-6`}>
@@ -46,8 +56,59 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
           {isUser ? (
             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
           ) : (
-            <div className="text-sm [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:rounded [&_pre]:overflow-x-auto">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+            <div className="text-sm [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4">
+              <ReactMarkdown
+                components={{
+                  pre: ({ children, ...props }) => {
+                    return <>{children}</>
+                  },
+                  code: ({ className, children, ...props }) => {
+                    const match = /language-(\w+)/.exec(className || '')
+                    const isInline = !match
+                    const language = match ? match[1] : ''
+                    
+                    if (isInline) {
+                      return (
+                        <code 
+                          className="bg-muted/50 px-1.5 py-0.5 rounded text-xs font-mono"
+                          {...props}
+                        >
+                          {children}
+                        </code>
+                      )
+                    }
+                    
+                    const codeString = String(children).replace(/\n$/, '')
+                    
+                    return (
+                      <div className="relative group/codeblock my-2">
+                        <CopyButton 
+                          text={codeString} 
+                          size="sm"
+                          className="absolute top-2 right-2 opacity-0 group-hover/codeblock:opacity-100 z-10"
+                        />
+                        <SyntaxHighlighter
+                          language={language}
+                          style={isDark ? oneDark : oneLight}
+                          customStyle={{
+                            margin: 0,
+                            borderRadius: '0.5rem',
+                            padding: '1rem',
+                            fontSize: '0.875rem',
+                            lineHeight: '1.5',
+                          }}
+                          PreTag="div"
+                          {...props}
+                        >
+                          {codeString}
+                        </SyntaxHighlighter>
+                      </div>
+                    )
+                  },
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
             </div>
           )}
         </div>

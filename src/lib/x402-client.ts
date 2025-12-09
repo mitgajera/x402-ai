@@ -1,9 +1,9 @@
-type SupportedModelId = 'gpt-4o' | 'gemini-2.5-flash-lite' | 'sonar-pro' | 'claude-3.5-sonnet'
+type SupportedModelId = 'gpt-4o' | 'gemini-2.5-flash-lite' | 'sonar-pro' | 'claude-3.5-sonnet' | 'grok-beta' | 'deepseek-chat'
 
 export type X402ModelConfig = {
   id: SupportedModelId
   label: string
-  provider: 'openai' | 'google' | 'perplexity' | 'anthropic'
+  provider: 'openai' | 'google' | 'perplexity' | 'anthropic' | 'xai' | 'deepseek'
   priceUsd: number
 }
 
@@ -31,6 +31,18 @@ export const X402_MODELS: X402ModelConfig[] = [
     label: 'Claude 3.5 Sonnet (Anthropic)',
     provider: 'anthropic',
     priceUsd: 0.06,
+  },
+  {
+    id: 'grok-beta',
+    label: 'Grok Beta (xAI)',
+    provider: 'xai',
+    priceUsd: 0.04,
+  },
+  {
+    id: 'deepseek-chat',
+    label: 'DeepSeek Chat',
+    provider: 'deepseek',
+    priceUsd: 0.03,
   },
 ]
 
@@ -123,12 +135,64 @@ export class X402AIClient {
     throw new Error(errMsg)
   }
 
-  async completion(params: X402CompletionParams): Promise<X402CompletionResponse> {
+  async completion(params: X402CompletionParams, onChunk?: (chunk: string) => void): Promise<X402CompletionResponse> {
+    // Always enable streaming to avoid exposing full responses in network tab
     const first = await fetch(this.endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-STREAM': 'true', // Always enable streaming
+      },
       body: JSON.stringify(params),
     })
+
+    // Handle streaming response (always enabled)
+    if (first.headers.get('content-type')?.includes('text/event-stream')) {
+      const reader = first.body?.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let fullOutput = ''
+      let modelId = params.modelId
+      let usage = { inputTokens: 0, outputTokens: 0 }
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6))
+                if (data.type === 'start') {
+                  modelId = data.modelId || params.modelId
+                } else if (data.type === 'chunk') {
+                  fullOutput += data.content
+                  // Call onChunk if provided
+                  if (onChunk) {
+                    onChunk(data.content)
+                  }
+                } else if (data.type === 'done') {
+                  usage = data.usage || usage
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        output: fullOutput,
+        modelId,
+        usage,
+      }
+    }
 
     if (first.ok) {
       return (await first.json()) as X402CompletionResponse

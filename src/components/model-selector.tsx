@@ -4,7 +4,7 @@ import { X402_MODELS, type X402ModelConfig } from '@/lib/x402-client'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { Check, Sparkles } from 'lucide-react'
-import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon } from '@/components/llm-icons'
+import { OpenAIIcon, GeminiIcon, AnthropicIcon, PerplexityIcon, GrokIcon, DeepSeekIcon } from '@/components/llm-icons'
 
 type ModelSelectorProps = {
   selectedModelId: string
@@ -21,6 +21,10 @@ function getModelIcon(model: X402ModelConfig, className?: string) {
       return <AnthropicIcon className={className} />
     case 'perplexity':
       return <PerplexityIcon className={className} />
+    case 'xai':
+      return <GrokIcon className={className} />
+    case 'deepseek':
+      return <DeepSeekIcon className={className} />
     default:
       return <Sparkles className={className} />
   }

@@ -24,7 +24,32 @@ const links: { label: string; path: string }[] = [
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`antialiased`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Suppress React hydration mismatch warnings
+              (function() {
+                if (typeof window === 'undefined') return;
+                const originalError = console.error;
+                console.error = function(...args) {
+                  const message = args[0];
+                  if (typeof message === 'string' && (
+                    message.includes('hydration') || 
+                    message.includes('Hydration') ||
+                    message.includes('did not match') ||
+                    message.includes('server rendered HTML')
+                  )) {
+                    return; // Suppress hydration warnings
+                  }
+                  originalError.apply(console, args);
+                };
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={`antialiased`} suppressHydrationWarning>
         <AppProviders>
           <AppLayout links={links}>{children}</AppLayout>
         </AppProviders>
