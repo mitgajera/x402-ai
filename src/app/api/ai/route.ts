@@ -1190,6 +1190,19 @@ export async function POST(request: NextRequest) {
                   
                   const refundAmountSol = (balanceIncrease / 1_000_000_000).toFixed(9)
                   
+                  // Helper to truncate transaction signature
+                  const truncateTx = (sig: string) => {
+                    if (sig.length <= 16) return sig
+                    return `${sig.slice(0, 8)}...${sig.slice(-8)}`
+                  }
+                  
+                  const clusterName = cluster === 'devnet' ? 'devnet' 
+                    : cluster === 'testnet' ? 'testnet'
+                    : 'mainnet-beta'
+                  
+                  const explorerUrl = `https://explorer.solana.com/tx/${refundSignature}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}`
+                  const truncatedSig = truncateTx(refundSignature)
+                  
                   // Return success even if confirmation check failed (transaction was sent)
                   return NextResponse.json(
                     { 
@@ -1199,9 +1212,7 @@ export async function POST(request: NextRequest) {
                       refundSignature,
                       refundAmount: balanceIncrease.toString(),
                       refundAmountSol,
-                      userMessage: confirmed 
-                        ? `✅ Refund Complete\n\nYour payment of ${refundAmountSol} SOL has been automatically refunded.\n\nTransaction: ${refundSignature}\n\nYou can try again later or switch to a different AI model.`
-                        : `✅ Refund Processing\n\nYour payment of ${refundAmountSol} SOL is being refunded.\n\nTransaction: ${refundSignature}\n\nPlease wait a moment and check your wallet balance.`,
+                      userMessage: `Service Error\n\nThe AI service encountered an error after payment.\n\nYour payment of ${refundAmountSol} SOL has been automatically refunded.\n\nTransaction: ${truncatedSig} ${explorerUrl}\n\nYou can try again or switch to a different AI model.\n\nIf you were charged, please contact support.`,
                     },
                     { status: 500 }
                   )
@@ -1216,6 +1227,19 @@ export async function POST(request: NextRequest) {
                     // Transaction was sent, return success even if there was an error
                     const refundSignature = refundSignatureMatch[1]
                     const refundAmountSol = (balanceIncrease / 1_000_000_000).toFixed(9)
+                    
+                    // Helper to truncate transaction signature
+                    const truncateTx = (sig: string) => {
+                      if (sig.length <= 16) return sig
+                      return `${sig.slice(0, 8)}...${sig.slice(-8)}`
+                    }
+                    
+                    const truncatedSig = truncateTx(refundSignature)
+                    const clusterName = cluster === 'devnet' ? 'devnet' 
+                      : cluster === 'testnet' ? 'testnet'
+                      : 'mainnet-beta'
+                    const explorerUrl = `https://explorer.solana.com/tx/${refundSignature}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}`
+                    
                     return NextResponse.json(
                       { 
                         error: `The AI service is currently unavailable. Your payment of ${refundAmountSol} SOL is being refunded.`,
@@ -1224,7 +1248,7 @@ export async function POST(request: NextRequest) {
                         refundSignature,
                         refundAmount: balanceIncrease.toString(),
                         refundAmountSol,
-                        userMessage: `✅ Refund Processing\n\nYour payment of ${refundAmountSol} SOL is being refunded.\n\nTransaction: ${refundSignature}\n\nPlease wait a moment and check your wallet balance.`,
+                        userMessage: `Service Error\n\nThe AI service encountered an error after payment.\n\nYour payment of ${refundAmountSol} SOL has been automatically refunded.\n\nTransaction: ${truncatedSig} ${explorerUrl}\n\nYou can try again or switch to a different AI model.\n\nIf you were charged, please contact support.`,
                       },
                       { status: 500 }
                     )

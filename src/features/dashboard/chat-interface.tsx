@@ -1343,11 +1343,32 @@ function ChatSession({ account }: ChatSessionProps) {
                 </div>
                 <div className="flex-1 text-xs sm:text-sm text-destructive whitespace-pre-wrap break-words">
                   {error.split('\n').map((line, idx) => {
+                    // Handle "Transaction: [truncated] [url]" format
+                    const transactionMatch = line.match(/Transaction:\s*([A-Za-z0-9]+\.\.\.[A-Za-z0-9]+)\s+(https?:\/\/[^\s]+)/)
+                    if (transactionMatch) {
+                      const truncatedSig = transactionMatch[1]
+                      const url = transactionMatch[2]
+                      return (
+                        <div key={idx} className="mb-1 last:mb-0">
+                          Transaction:{' '}
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline font-mono"
+                          >
+                            {truncatedSig}
+                          </a>
+                        </div>
+                      )
+                    }
+                    
                     const genericUrlMatch = line.match(/(https?:\/\/[^\s]+)/)
                     if (genericUrlMatch) {
                       const url = genericUrlMatch[1]
                       const parts = line.split(url)
                       const explorerMatch = url.match(/explorer\.solana\.com\/tx\/([A-Za-z0-9]+)/)
+                      const solscanUrlMatch = url.match(/solscan\.io\/tx\/([A-Za-z0-9]+)/)
                       
                       return (
                         <div key={idx} className="mb-1 last:mb-0">
@@ -1358,11 +1379,13 @@ function ChatSession({ account }: ChatSessionProps) {
                             rel="noopener noreferrer"
                             className={cn(
                               "font-mono hover:underline",
-                              explorerMatch ? "text-primary" : "text-primary"
+                              explorerMatch || solscanUrlMatch ? "text-primary" : "text-primary"
                             )}
                           >
                             {explorerMatch 
                               ? `${explorerMatch[1].slice(0, 8)}...${explorerMatch[1].slice(-8)}`
+                              : solscanUrlMatch
+                              ? `${solscanUrlMatch[1].slice(0, 8)}...${solscanUrlMatch[1].slice(-8)}`
                               : url
                             }
                           </a>
