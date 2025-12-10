@@ -7,6 +7,15 @@ import React from 'react'
 export const metadata: Metadata = {
   title: 'x402 AI - Trustless AI Inference with Solana Micropayments',
   description: 'Pay-per-request AI inference gateway using HTTP 402 protocol. Access ChatGPT, Gemini, Claude, and Perplexity with secure Solana micropayments.',
+  icons: {
+    icon: [
+      { url: '/icon.png', type: 'image/png' },
+      { url: '/icon.png', type: 'image/png', sizes: '32x32' },
+      { url: '/icon.png', type: 'image/png', sizes: '16x16' },
+    ],
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+  },
   viewport: {
     width: 'device-width',
     initialScale: 1,

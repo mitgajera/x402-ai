@@ -1,7 +1,7 @@
 {
   "name": "x402-ai-gateway",
   "scripts": {
-    "build": "next build",
+    "build": "node scripts/build.js",
     "ci": "npm run build && npm run lint && npm run format:check",
     "dev": "next dev --turbopack",
     "format": "prettier --write .",
@@ -9,17 +9,16 @@
     "lint": "next lint",
     "start": "next start"
   },
-  "displayName": "Gill Boilerplate",
-  "description": "Next.js, Tailwind, gill (based on @solana/kit), Wallet UI",
-  "usecase": "Starter",
+  "displayName": "x402 AI Gateway",
+  "description": "Pay-per-request AI inference gateway using HTTP 402 protocol. Access ChatGPT, Gemini, Claude, and Perplexity with secure Solana micropayments.",
+  "usecase": "AI Inference",
   "keywords": [
-    "gill",
-    "nextjs",
-    "react",
-    "solana-kit",
-    "tailwind",
-    "typescript",
-    "wallet-ui"
+    "x402",
+    "AI",
+    "Inference",
+    "HTTP 402",
+    "Solana",
+    "Micropayments"
   ],
   "version": "0.0.0",
   "private": true,
