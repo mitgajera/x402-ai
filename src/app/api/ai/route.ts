@@ -922,16 +922,43 @@ export async function POST(request: NextRequest) {
 
     // TODO: Optionally record receipt on-chain via Anchor program
 
-    // If we reach here without streaming, return the output
-    // (This happens when provider doesn't support streaming or streaming is disabled)
+    // If we reach here without streaming, wrap it in a streaming response
+    // to avoid exposing full responses in network tab
     if (!output || !output.trim()) {
       throw new Error('No response received from AI service')
     }
     
-    return NextResponse.json({
-      output,
-      modelId,
-      usage,
+    // Always return streaming format to prevent exposing full response in network tab
+    // Even for providers that don't support native streaming
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder()
+        try {
+          // Send start event
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', modelId })}\n\n`))
+          
+          // Send output as a single chunk (or split into smaller chunks for very long responses)
+          const chunkSize = 1000 // Send in chunks of 1000 characters
+          for (let i = 0; i < output.length; i += chunkSize) {
+            const chunk = output.slice(i, i + chunkSize)
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`))
+          }
+          
+          // Send done event with usage
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', usage })}\n\n`))
+          controller.close()
+        } catch (error) {
+          controller.error(error)
+        }
+      },
+    })
+    
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     })
   } catch (error) {
     logger.error('AI API error:', error instanceof Error ? error.message : 'Internal server error')
