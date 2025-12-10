@@ -59,7 +59,7 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
             <div className="text-sm [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4">
               <ReactMarkdown
                 components={{
-                  pre: ({ children, ...props }) => {
+                  pre: ({ children }) => {
                     return <>{children}</>
                   },
                   code: ({ className, children, ...props }) => {
@@ -89,7 +89,8 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
                         />
                         <SyntaxHighlighter
                           language={language}
-                          style={isDark ? oneDark : oneLight}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          style={isDark ? oneDark : oneLight as any}
                           customStyle={{
                             margin: 0,
                             borderRadius: '0.5rem',
@@ -98,7 +99,6 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
                             lineHeight: '1.5',
                           }}
                           PreTag="div"
-                          {...props}
                         >
                           {codeString}
                         </SyntaxHighlighter>

@@ -134,7 +134,7 @@ function MarkdownContent({ content }: { content: string }) {
     <div className="text-sm sm:text-base leading-relaxed">
       <ReactMarkdown
         components={{
-          pre: ({ children, ...props }) => {
+          pre: ({ children }) => {
             return <>{children}</>
           },
           code: ({ className, children, ...props }) => {
@@ -165,7 +165,8 @@ function MarkdownContent({ content }: { content: string }) {
                 />
                 <SyntaxHighlighter
                   language={language}
-                  style={isDark ? oneDark : oneLight}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  style={isDark ? oneDark : oneLight as any}
                   customStyle={{
                     margin: 0,
                     borderRadius: '0.5rem',
@@ -174,7 +175,6 @@ function MarkdownContent({ content }: { content: string }) {
                     lineHeight: '1.5',
                   }}
                   PreTag="div"
-                  {...props}
                 >
                   {codeString}
                 </SyntaxHighlighter>

@@ -179,7 +179,7 @@ export class X402AIClient {
                 } else if (data.type === 'done') {
                   usage = data.usage || usage
                 }
-              } catch (e) {
+              } catch {
                 // Skip invalid JSON
               }
             }

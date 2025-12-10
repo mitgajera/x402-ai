@@ -475,7 +475,7 @@ export async function POST(request: NextRequest) {
                             outputTokens: json.usage.completion_tokens || 0,
                           }
                         }
-                      } catch (e) {
+                      } catch {
                         // Skip invalid JSON
                       }
                     }
@@ -741,7 +741,7 @@ export async function POST(request: NextRequest) {
                             outputTokens: json.usage.completion_tokens || 0,
                           }
                         }
-                      } catch (e) {
+                      } catch {
                         // Skip invalid JSON
                       }
                     }
@@ -864,7 +864,7 @@ export async function POST(request: NextRequest) {
                             outputTokens: json.usage.completion_tokens || 0,
                           }
                         }
-                      } catch (e) {
+                      } catch {
                         // Skip invalid JSON
                       }
                     }
