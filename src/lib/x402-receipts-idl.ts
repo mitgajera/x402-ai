@@ -1,5 +1,5 @@
-import type { X402Receipts } from '../../x402_receipts/target/types/x402_receipts'
-import rawIdl from '../../x402_receipts/target/idl/x402_receipts.json'
+import type { X402Receipts } from './x402-receipts-types'
+import rawIdl from './x402-receipts-idl.json'
 
 
 export const X402_RECEIPTS_IDL = rawIdl as X402Receipts

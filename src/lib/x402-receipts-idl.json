@@ -1,0 +1,151 @@
+{
+  "address": "12wpFdqZm2bwCUNSiqB8UJTwRJFkevU5vUuE8XxhpHE1",
+  "metadata": {
+    "name": "x402_receipts",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "record_receipt",
+      "discriminator": [
+        123,
+        1,
+        227,
+        189,
+        86,
+        215,
+        19,
+        253
+      ],
+      "accounts": [
+        {
+          "name": "receipt",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  99,
+                  101,
+                  105,
+                  112,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "reference"
+              }
+            ]
+          }
+        },
+        {
+          "name": "merchant"
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "reference",
+          "type": "string"
+        },
+        {
+          "name": "model_id",
+          "type": "string"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "tx_sig",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Receipt",
+      "discriminator": [
+        39,
+        154,
+        73,
+        106,
+        80,
+        102,
+        145,
+        153
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ReferenceTooLong",
+      "msg": "Reference string too long"
+    },
+    {
+      "code": 6001,
+      "name": "ModelIdTooLong",
+      "msg": "Model ID too long"
+    },
+    {
+      "code": 6002,
+      "name": "TxSigTooLong",
+      "msg": "Transaction signature too long"
+    }
+  ],
+  "types": [
+    {
+      "name": "Receipt",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "merchant",
+            "type": "pubkey"
+          },
+          {
+            "name": "reference",
+            "type": "string"
+          },
+          {
+            "name": "model_id",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "tx_sig",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}
+
