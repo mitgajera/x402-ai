@@ -943,10 +943,27 @@ function ChatSession({ account }: ChatSessionProps) {
               let refundAmountSol = ''
               let refundStatus = 'pending'
               let transactionId: string | undefined
+              let userMessage: string | undefined
               
               try {
+                // Check content-type - if it's a stream, we need to cancel it first
+                const contentType = retry.headers.get('content-type')
+                if (contentType?.includes('text/event-stream')) {
+                  // Cancel the stream reader if it exists
+                  const reader = retry.body?.getReader()
+                  if (reader) {
+                    reader.cancel().catch(() => {})
+                  }
+                }
+                
+                // Try to parse error response
                 const errorBody = await retry.json().catch(() => null)
                 if (errorBody && typeof errorBody === 'object') {
+                  // Check for userMessage first (from refund responses)
+                  if ('userMessage' in errorBody && errorBody.userMessage) {
+                    userMessage = String(errorBody.userMessage)
+                  }
+                  
                   if ('refunded' in errorBody) {
                     refunded = (errorBody as { refunded: boolean }).refunded
                     refundStatus = refunded ? 'completed' : 'failed'
@@ -958,6 +975,12 @@ function ChatSession({ account }: ChatSessionProps) {
                   transactionId = (errorBody as { transactionId?: string }).transactionId
                 }
               } catch {
+                // If we can't parse the error, use a generic message
+              }
+              
+              // Use userMessage if available (from API route refund responses)
+              if (userMessage) {
+                throw new Error(userMessage)
               }
               
               if (refunded) {
@@ -966,7 +989,7 @@ function ChatSession({ account }: ChatSessionProps) {
                   : 'mainnet-beta'
                 
                 const refundMessage = refundSignature 
-                  ? `Service Error\n\nThe AI service encountered an error after payment.\n\nYour payment of ${refundAmountSol} SOL has been automatically refunded.\n\nTransaction: https://explorer.solana.com/tx/${refundSignature}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}\n\nYou can try again or switch to a different AI model.\n\nIf you were charged, please contact support.`
+                  ? `✅ Refund Complete\n\nYour payment of ${refundAmountSol} SOL has been automatically refunded.\n\nTransaction: https://explorer.solana.com/tx/${refundSignature}?cluster=${clusterName === 'mainnet-beta' ? 'mainnet-beta' : clusterName}\n\nYou can try again or switch to a different AI model.`
                   : `✅ Refund Processing\n\nYour payment of ${refundAmountSol} SOL is being refunded.\n\nPlease wait a moment and check your wallet balance.`
                 throw new Error(refundMessage)
               } else {
@@ -986,10 +1009,19 @@ function ChatSession({ account }: ChatSessionProps) {
               let usage = { inputTokens: 0, outputTokens: 0 }
 
               if (reader) {
+                // Add timeout to prevent infinite loading (60 seconds)
+                const STREAM_TIMEOUT = 60000
+                const timeoutId = setTimeout(() => {
+                  reader.cancel()
+                }, STREAM_TIMEOUT)
+
                 try {
                   while (true) {
                     const { done, value } = await reader.read()
-                    if (done) break
+                    if (done) {
+                      clearTimeout(timeoutId)
+                      break
+                    }
 
                     buffer += decoder.decode(value, { stream: true })
                     const lines = buffer.split('\n\n')
@@ -1039,8 +1071,17 @@ function ChatSession({ account }: ChatSessionProps) {
                     }
                   }
                 } catch (streamError) {
+                  clearTimeout(timeoutId)
+                  reader.cancel().catch(() => {})
                   logger.error('Streaming error:', streamError)
-                  throw new Error(`Failed to read streaming response: ${streamError instanceof Error ? streamError.message : String(streamError)}`)
+                  
+                  // Check if it's a timeout error
+                  const errorMsg = streamError instanceof Error ? streamError.message : String(streamError)
+                  if (errorMsg.includes('timeout') || errorMsg.includes('cancel')) {
+                    throw new Error(`⚠️ Service Unavailable\n\nThe AI service failed after payment.\n\nThe request timed out or was cancelled.\n\nPlease try again later or contact support.`)
+                  }
+                  
+                  throw new Error(`⚠️ Service Unavailable\n\nThe AI service failed after payment.\n\n${errorMsg}\n\nPlease try again later or contact support.`)
                 }
               } else {
                 throw new Error('Stream reader not available')
@@ -1048,7 +1089,7 @@ function ChatSession({ account }: ChatSessionProps) {
 
               // Ensure we have content before setting response
               if (!streamingContent.trim()) {
-                throw new Error('Received empty response from AI service after payment')
+                throw new Error('⚠️ Service Unavailable\n\nThe AI service failed after payment.\n\nReceived empty response from AI service.\n\nPlease try again later or contact support.')
               }
 
               response = {
@@ -1058,12 +1099,16 @@ function ChatSession({ account }: ChatSessionProps) {
               }
               // Message will be saved in the final update below to avoid duplication
             } else {
-              const jsonResponse = await retry.json() as { output?: string; modelId?: string; error?: string }
+              const jsonResponse = await retry.json() as { output?: string; modelId?: string; error?: string; userMessage?: string }
+              // Check for userMessage first (from refund responses)
+              if (jsonResponse.userMessage) {
+                throw new Error(jsonResponse.userMessage)
+              }
               if (jsonResponse.error) {
                 throw new Error(jsonResponse.error)
               }
               if (!jsonResponse.output) {
-                throw new Error('Received empty response from AI service after payment')
+                throw new Error('⚠️ Service Unavailable\n\nThe AI service failed after payment.\n\nReceived empty response from AI service.\n\nPlease try again later or contact support.')
               }
               response = {
                 output: jsonResponse.output,

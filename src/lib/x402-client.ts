@@ -146,65 +146,28 @@ export class X402AIClient {
       body: JSON.stringify(params),
     })
 
-    // Handle streaming response (always enabled)
-    if (first.headers.get('content-type')?.includes('text/event-stream')) {
-      const reader = first.body?.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let fullOutput = ''
-      let modelId = params.modelId
-      let usage = { inputTokens: 0, outputTokens: 0 }
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n\n')
-          buffer = lines.pop() || ''
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6))
-                if (data.type === 'start') {
-                  modelId = data.modelId || params.modelId
-                } else if (data.type === 'chunk') {
-                  fullOutput += data.content
-                  // Call onChunk if provided
-                  if (onChunk) {
-                    onChunk(data.content)
-                  }
-                } else if (data.type === 'done') {
-                  usage = data.usage || usage
-                }
-              } catch {
-                // Skip invalid JSON
-              }
-            }
-          }
-        }
+    // Check if response is OK before trying to read stream
+    // If not OK, parse error response (may contain refund info)
+    if (!first.ok) {
+      if (first.status === 402) {
+        const json = (await first.json()) as { paymentRequirements: X402PaymentRequirements }
+        const { paymentRequirements } = json
+        throw new X402PaymentRequiredError(paymentRequirements)
       }
-
-      return {
-        output: fullOutput,
-        modelId,
-        usage,
-      }
-    }
-
-    if (first.ok) {
-      return (await first.json()) as X402CompletionResponse
-    }
-
-    if (first.status !== 402) {
-      // parse server error payload for better UX
+      
+      // Parse error response for better UX
       let errMsg = `Request failed: ${first.status}`
       try {
         const body = await first.json().catch(() => null)
-        if (body && typeof body === 'object' && 'error' in body && body.error) {
-          errMsg = String((body as { error: unknown }).error)
+        if (body && typeof body === 'object') {
+          // Check for userMessage first (from refund responses)
+          if ('userMessage' in body && body.userMessage) {
+            errMsg = String(body.userMessage)
+          } else if ('error' in body && body.error) {
+            errMsg = String(body.error)
+          } else {
+            errMsg = JSON.stringify(body)
+          }
         } else {
           const text = await first.text().catch(() => '')
           if (text) errMsg = text
@@ -215,11 +178,71 @@ export class X402AIClient {
       throw new Error(errMsg)
     }
 
-    const json = (await first.json()) as { paymentRequirements: X402PaymentRequirements }
-    const { paymentRequirements } = json
+    // Handle streaming response (only if OK)
+    if (first.headers.get('content-type')?.includes('text/event-stream')) {
+      const reader = first.body?.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let fullOutput = ''
+      let modelId = params.modelId
+      let usage = { inputTokens: 0, outputTokens: 0 }
 
-    // Always throw payment required error - payment is handled by the caller
-    throw new X402PaymentRequiredError(paymentRequirements)
+      if (reader) {
+        // Add timeout to prevent infinite loading (60 seconds)
+        const STREAM_TIMEOUT = 60000
+        const timeoutId = setTimeout(() => {
+          reader.cancel()
+        }, STREAM_TIMEOUT)
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) {
+              clearTimeout(timeoutId)
+              break
+            }
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n\n')
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6))
+                  if (data.type === 'start') {
+                    modelId = data.modelId || params.modelId
+                  } else if (data.type === 'chunk') {
+                    fullOutput += data.content
+                    // Call onChunk if provided
+                    if (onChunk) {
+                      onChunk(data.content)
+                    }
+                  } else if (data.type === 'done') {
+                    usage = data.usage || usage
+                  }
+                } catch {
+                  // Skip invalid JSON
+                }
+              }
+            }
+          }
+        } catch (streamError) {
+          clearTimeout(timeoutId)
+          reader.cancel().catch(() => {})
+          throw new Error(`Streaming error: ${streamError instanceof Error ? streamError.message : String(streamError)}`)
+        }
+      }
+
+      return {
+        output: fullOutput,
+        modelId,
+        usage,
+      }
+    }
+
+    // Non-streaming response
+    return (await first.json()) as X402CompletionResponse
   }
 
 }

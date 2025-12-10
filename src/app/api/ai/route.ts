@@ -486,6 +486,12 @@ export async function POST(request: NextRequest) {
                 usage = finalUsage
                 controller.close()
               } catch (error) {
+                // Ensure stream is properly closed on error
+                try {
+                  reader.cancel()
+                } catch {
+                  // Ignore cancel errors
+                }
                 controller.error(error)
               }
             },
@@ -752,6 +758,12 @@ export async function POST(request: NextRequest) {
                 usage = finalUsage
                 controller.close()
               } catch (error) {
+                // Ensure stream is properly closed on error
+                try {
+                  reader.cancel()
+                } catch {
+                  // Ignore cancel errors
+                }
                 controller.error(error)
               }
             },
@@ -875,6 +887,12 @@ export async function POST(request: NextRequest) {
                 usage = finalUsage
                 controller.close()
               } catch (error) {
+                // Ensure stream is properly closed on error
+                try {
+                  reader.cancel()
+                } catch {
+                  // Ignore cancel errors
+                }
                 controller.error(error)
               }
             },
