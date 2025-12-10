@@ -9,12 +9,10 @@ export const metadata: Metadata = {
   description: 'Pay-per-request AI inference gateway using HTTP 402 protocol. Access ChatGPT, Gemini, Claude, and Perplexity with secure Solana micropayments.',
   icons: {
     icon: [
-      { url: '/icon.png', type: 'image/png' },
-      { url: '/icon.png', type: 'image/png', sizes: '32x32' },
-      { url: '/icon.png', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon.ico', type: 'image/x-icon' },
     ],
-    shortcut: '/icon.png',
-    apple: '/icon.png',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
   },
   viewport: {
     width: 'device-width',
