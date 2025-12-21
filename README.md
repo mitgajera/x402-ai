@@ -2,6 +2,13 @@
 
 A production-ready micropayment gateway that implements HTTP 402 (Payment Required) to monetize access to AI inference services. Users pay micro-amounts in SOL to query multiple LLM providers (OpenAI, Google, Anthropic, Perplexity) with automatic on-chain receipt recording.
 
+## Demo
+
+
+https://github.com/user-attachments/assets/657aba57-6d94-4ce6-ae57-f74cb3252eb0
+
+
+
 ## Overview
 
 x402 AI Gateway enables trustless, pay-per-request AI inference with secure Solana micropayments. Each AI request requires a small SOL payment verified on-chain before processing. Payment receipts are automatically recorded on Solana using an Anchor program for full auditability and transparency.
