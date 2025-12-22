@@ -5,7 +5,8 @@ A production-ready micropayment gateway that implements HTTP 402 (Payment Requir
 ## Demo
 
 
-https://github.com/user-attachments/assets/657aba57-6d94-4ce6-ae57-f74cb3252eb0
+
+https://github.com/user-attachments/assets/c12506dc-06a6-43ca-8e8d-faa9914017ed
 
 
 
